@@ -14,8 +14,8 @@ class _ProductFolderState extends State<ProductFolder>
   late AnimationController _carouselController;
   late Animation<double> _carouselAnimation;
   bool _isAutoPlaying = true;
-  double _dragStartX = 0;
   double _currentOffset = 0;
+  double _dragDelta = 0;
 
   @override
   void initState() {
@@ -43,13 +43,12 @@ class _ProductFolderState extends State<ProductFolder>
     });
   }
 
-  void _moveCarousel(double offset) {
+  void _updateOffset(double delta) {
     setState(() {
-      _currentOffset += offset;
+      _currentOffset += delta;
       if (_currentOffset > 0) _currentOffset = 0;
-      // Ajusta o limite baseado no número de produtos
       final maxOffset =
-          -(MediaQuery.of(context).size.height * (products.length - 1));
+          -(MediaQuery.of(context).size.height * (products.length - 1) / 2);
       if (_currentOffset < maxOffset) _currentOffset = maxOffset;
     });
   }
@@ -60,7 +59,6 @@ class _ProductFolderState extends State<ProductFolder>
     super.dispose();
   }
 
-  // Lista de produtos com seus nomes, URLs e imagens
   final List<Map<String, String>> products = const [
     {
       'name': 'Dataplace ERP',
@@ -97,181 +95,125 @@ class _ProductFolderState extends State<ProductFolder>
 
   @override
   Widget build(BuildContext context) {
-    // Obtém o tamanho da tela
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 600;
-    final isTablet = screenSize.width >= 600 && screenSize.width < 1200;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.blue[900]!, Colors.cyan[300]!],
-                stops: const [0.0, 1.0],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.blue[900]!.withOpacity(0.9),
+              const Color.fromARGB(255, 61, 172, 251)!.withOpacity(0.7),
+              const Color.fromARGB(255, 10, 1, 53).withOpacity(0.8),
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedContainer(
+                duration: const Duration(seconds: 10),
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.cyan[400]!.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    radius: 0.7,
+                    center: const Alignment(-0.4, -0.4),
+                  ),
+                ),
               ),
             ),
-            child: Stack(
-              children: [
-                // Partículas de fundo mais dinâmicas
-                Positioned.fill(
-                  child: AnimatedContainer(
-                    duration: const Duration(seconds: 60),
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.blue[800]!.withOpacity(0.7),
-                          Colors.transparent,
-                        ],
-                        radius: 0.6,
-                        stops: const [0.0, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: AnimatedContainer(
-                    duration: const Duration(seconds: 75),
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.cyan[700]!.withOpacity(0.5),
-                          Colors.transparent,
-                        ],
-                        radius: 0.8,
-                        center: const Alignment(0.5, -0.5),
-                        stops: const [0.0, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Listener(
-                        onPointerSignal: (pointerSignal) {
-                          if (pointerSignal is PointerScrollEvent) {
-                            if (pointerSignal.scrollDelta.dy > 0) {
-                              // Scroll para baixo: próximo card
-                              setState(() {
-                                _currentOffset -= 1.0;
-                                final maxOffset =
-                                    -(MediaQuery.of(context).size.height *
-                                        (products.length - 1));
-                                if (_currentOffset < maxOffset)
-                                  _currentOffset = maxOffset;
-                              });
-                            } else if (pointerSignal.scrollDelta.dy < 0) {
-                              // Scroll para cima: card anterior
-                              setState(() {
-                                _currentOffset += 1.0;
-                                if (_currentOffset > 0) _currentOffset = 0;
-                              });
-                            }
-                          }
-                        },
-                        child: GestureDetector(
-                          onVerticalDragStart: (details) {
-                            _dragStartX = details.globalPosition.dy;
-                            _carouselController.stop();
-                          },
-                          onVerticalDragEnd: (details) {
-                            final dragDistance = details.primaryVelocity ?? 0;
-                            // Se arrastou para cima (drag negativo), vai para o próximo card
-                            if (dragDistance < -50) {
-                              setState(() {
-                                _currentOffset -= 1.0;
-                                final maxOffset =
-                                    -(MediaQuery.of(context).size.height *
-                                        (products.length - 1));
-                                if (_currentOffset < maxOffset)
-                                  _currentOffset = maxOffset;
-                              });
-                            }
-                            // Se arrastou para baixo (drag positivo), vai para o card anterior
-                            else if (dragDistance > 50) {
-                              setState(() {
-                                _currentOffset += 1.0;
-                                if (_currentOffset > 0) _currentOffset = 0;
-                              });
-                            }
-                            _carouselController.repeat();
-                          },
-                          onTapDown: (_) {
-                            _carouselController.stop();
-                          },
-                          onTapUp: (_) {
-                            _carouselController.repeat();
-                          },
-                          onTapCancel: () {
-                            _carouselController.repeat();
-                          },
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: SizedBox(
-                              height: constraints.maxHeight * products.length,
-                              child: AnimatedBuilder(
-                                animation:
-                                    _isAutoPlaying
-                                        ? _carouselAnimation
-                                        : _carouselController,
-                                builder: (context, child) {
-                                  return Transform.translate(
-                                    offset: Offset(
-                                      0,
-                                      _isAutoPlaying
-                                          ? _carouselAnimation.value *
-                                              constraints.maxHeight
-                                          : _currentOffset *
-                                              constraints.maxHeight,
-                                    ),
-                                    child: Column(
-                                      children:
-                                          products
-                                              .map(
-                                                (product) => SizedBox(
-                                                  height:
-                                                      constraints.maxHeight *
-                                                      0.3,
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 8.0,
-                                                          horizontal: 16.0,
-                                                        ),
-                                                    child: ProductCard(
-                                                      name: product['name']!,
-                                                      url: product['url']!,
-                                                      image: product['image']!,
-                                                      index: products.indexOf(
-                                                        product,
-                                                      ),
-                                                      isMobile: true,
-                                                      isTablet: false,
+            Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Listener(
+                    onPointerSignal: (pointerSignal) {
+                      if (pointerSignal is PointerScrollEvent) {
+                        _updateOffset(
+                          pointerSignal.scrollDelta.dy / constraints.maxHeight,
+                        );
+                      }
+                    },
+                    child: GestureDetector(
+                      onPanStart: (details) {
+                        _carouselController.stop();
+                        _dragDelta = 0;
+                      },
+                      onPanUpdate: (details) {
+                        setState(() {
+                          _dragDelta = details.delta.dy / constraints.maxHeight;
+                          _updateOffset(_dragDelta);
+                        });
+                      },
+                      onPanEnd: (details) {
+                        if (_isAutoPlaying) {
+                          _carouselController.repeat();
+                        }
+                      },
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: constraints.maxHeight * products.length / 2,
+                          child: AnimatedBuilder(
+                            animation:
+                                _isAutoPlaying
+                                    ? _carouselAnimation
+                                    : _carouselController,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(
+                                  0,
+                                  _isAutoPlaying
+                                      ? _carouselAnimation.value *
+                                          constraints.maxHeight
+                                      : _currentOffset * constraints.maxHeight,
+                                ),
+                                child: Column(
+                                  children:
+                                      products
+                                          .asMap()
+                                          .entries
+                                          .map(
+                                            (entry) => SizedBox(
+                                              height:
+                                                  constraints.maxHeight * 0.4,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 12.0,
+                                                      horizontal: 16.0,
                                                     ),
-                                                  ),
+                                                child: ProductCard(
+                                                  name: entry.value['name']!,
+                                                  url: entry.value['url']!,
+                                                  image: entry.value['image']!,
+                                                  index: entry.key,
+                                                  isMobile: isMobile,
+                                                  isTablet: !isMobile,
                                                 ),
-                                              )
-                                              .toList(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -309,18 +251,14 @@ class _ProductCardState extends State<ProductCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 30),
+      duration: const Duration(seconds: 2),
       vsync: this,
     );
 
-    _glowAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 1.0, curve: Curves.easeInOutSine),
-      ),
+    _glowAnimation = Tween<double>(begin: 0.2, end: 0.6).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
 
-    _controller.forward();
     _controller.repeat(reverse: true);
   }
 
@@ -341,43 +279,44 @@ class _ProductCardState extends State<ProductCard>
 
   @override
   Widget build(BuildContext context) {
-    final imageSize = widget.isMobile ? 60.0 : (widget.isTablet ? 80.0 : 100.0);
-    final fontSize = widget.isMobile ? 18.0 : (widget.isTablet ? 20.0 : 24.0);
+    final imageSize = widget.isMobile ? 70.0 : (widget.isTablet ? 90.0 : 110.0);
+    final fontSize = widget.isMobile ? 20.0 : (widget.isTablet ? 22.0 : 26.0);
 
     return MouseRegion(
-      onEnter: (_) {
-        setState(() => _isHovered = true);
-        _controller.stop();
-      },
-      onExit: (_) {
-        setState(() => _isHovered = false);
-        _controller.repeat(reverse: true);
-      },
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 2000),
+        duration: const Duration(milliseconds: 300),
         margin: EdgeInsets.symmetric(
-          vertical: widget.isMobile ? 8.0 : 12.0,
-          horizontal: widget.isMobile ? 4.0 : 8.0,
+          vertical: widget.isMobile ? 10.0 : 14.0,
+          horizontal: widget.isMobile ? 6.0 : 10.0,
         ),
-        padding: EdgeInsets.all(widget.isMobile ? 12.0 : 20.0),
+        padding: EdgeInsets.all(widget.isMobile ? 14.0 : 22.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors:
                 _isHovered
-                    ? [Colors.blue[700]!, Colors.blue[900]!]
+                    ? [
+                      const Color.fromARGB(255, 10, 165, 254)!.withOpacity(0.9),
+                      Colors.blue[900]!.withOpacity(0.9),
+                    ]
                     : [
-                      Colors.blue[800]!.withOpacity(0.8),
-                      Colors.blue[900]!.withOpacity(0.8),
+                      Colors.blue[800]!.withOpacity(0.85),
+                      Colors.blue[900]!.withOpacity(0.85),
                     ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.cyan[300]!.withOpacity(_isHovered ? 0.8 : 0.3),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue[900]!.withOpacity(_glowAnimation.value),
-              blurRadius: 20,
-              spreadRadius: _isHovered ? 5 : 0,
+              color: Colors.cyan[400]!.withOpacity(_glowAnimation.value),
+              blurRadius: 15,
+              spreadRadius: _isHovered ? 3 : 1,
             ),
           ],
         ),
@@ -386,7 +325,7 @@ class _ProductCardState extends State<ProductCard>
           child: Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
                   widget.image,
                   width: imageSize,
@@ -394,49 +333,41 @@ class _ProductCardState extends State<ProductCard>
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     print('Erro ao carregar imagem ${widget.image}: $error');
-                    print('Stack trace: $stackTrace');
                     return Container(
                       width: imageSize,
                       height: imageSize,
-                      color: Colors.grey[300],
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                            size: 32,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Erro ao carregar\n${widget.image}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      color: const Color.fromARGB(255, 0, 9, 88),
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 32,
                       ),
                     );
                   },
                 ),
               ),
-              SizedBox(width: widget.isMobile ? 12.0 : 20.0),
+              SizedBox(width: widget.isMobile ? 14.0 : 22.0),
               Expanded(
                 child: Text(
                   widget.name,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(
+                        color: Colors.cyan[200]!.withOpacity(0.5),
+                        blurRadius: 5,
+                      ),
+                    ],
                   ),
                 ),
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: Colors.white.withOpacity(_isHovered ? 1.0 : 0.7),
-                size: widget.isMobile ? 16.0 : 24.0,
+                color: Colors.cyan[200]!.withOpacity(_isHovered ? 1.0 : 0.7),
+                size: widget.isMobile ? 18.0 : 26.0,
               ),
             ],
           ),
