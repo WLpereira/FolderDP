@@ -60,7 +60,10 @@ class ProductFolder extends StatelessWidget {
           children: [
             // Partículas de fundo mais dinâmicas
             Positioned.fill(
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(
+                  seconds: 60,
+                ), // Aumentado para 60 segundos
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
@@ -74,7 +77,10 @@ class ProductFolder extends StatelessWidget {
               ),
             ),
             Positioned.fill(
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(
+                  seconds: 75,
+                ), // Aumentado para 75 segundos
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
@@ -151,8 +157,50 @@ class ProductCard extends StatefulWidget {
   _ProductCardState createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> {
+class _ProductCardState extends State<ProductCard>
+    with SingleTickerProviderStateMixin {
   bool _isHovered = false;
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(
+        milliseconds: 8000 + widget.index * 2000,
+      ), // Aumentado para 8000ms
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeInOutSine),
+      ),
+    );
+
+    _controller.forward();
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
@@ -168,77 +216,52 @@ class _ProductCardState extends State<ProductCard> {
     final imageSize = widget.isMobile ? 60.0 : (widget.isTablet ? 80.0 : 100.0);
     final fontSize = widget.isMobile ? 18.0 : (widget.isTablet ? 20.0 : 24.0);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 2000),
-        margin: EdgeInsets.symmetric(
-          vertical: widget.isMobile ? 8.0 : 12.0,
-          horizontal: widget.isMobile ? 4.0 : 8.0,
-        ),
-        padding: EdgeInsets.all(widget.isMobile ? 12.0 : 20.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors:
-                _isHovered
-                    ? [Colors.blue[700]!, Colors.blue[900]!]
-                    : [
-                      Colors.blue[800]!.withOpacity(0.8),
-                      Colors.blue[900]!.withOpacity(0.8),
-                    ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(15),
-          border:
-              _isHovered
-                  ? Border.all(
-                    color: Colors.cyan[300]!.withOpacity(0.8),
-                    width: 2,
-                  )
-                  : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue[900]!.withOpacity(_isHovered ? 0.8 : 0.3),
-              blurRadius: 20,
-              spreadRadius: _isHovered ? 5 : 0,
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: MouseRegion(
+          onEnter: (_) {
+            setState(() => _isHovered = true);
+            _controller.stop();
+          },
+          onExit: (_) {
+            setState(() => _isHovered = false);
+            _controller.repeat(reverse: true);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(
+              milliseconds: 2000,
+            ), // Aumentado para 2000ms
+            margin: EdgeInsets.symmetric(
+              vertical: widget.isMobile ? 8.0 : 12.0,
+              horizontal: widget.isMobile ? 4.0 : 8.0,
             ),
-            if (_isHovered)
-              BoxShadow(
-                color: Colors.cyan[300]!.withOpacity(0.5),
-                blurRadius: 15,
-                spreadRadius: 2,
-              ),
-            if (_isHovered)
-              BoxShadow(
-                color: Colors.blue[400]!.withOpacity(0.3),
-                blurRadius: 30,
-                spreadRadius: 10,
-              ),
-          ],
-        ),
-        child: InkWell(
-          onTap: () => _launchURL(widget.url),
-          child: Stack(
-            children: [
-              if (_isHovered)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.cyan[300]!.withOpacity(0.2),
-                          Colors.transparent,
+            padding: EdgeInsets.all(widget.isMobile ? 12.0 : 20.0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors:
+                    _isHovered
+                        ? [Colors.blue[700]!, Colors.blue[900]!]
+                        : [
+                          Colors.blue[800]!.withOpacity(0.8),
+                          Colors.blue[900]!.withOpacity(0.8),
                         ],
-                        radius: 0.8,
-                        center: const Alignment(0.5, 0.5),
-                      ),
-                    ),
-                  ),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue[900]!.withOpacity(_glowAnimation.value),
+                  blurRadius: 20,
+                  spreadRadius: _isHovered ? 5 : 0,
                 ),
-              Row(
+              ],
+            ),
+            child: InkWell(
+              onTap: () => _launchURL(widget.url),
+              child: Row(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
@@ -284,32 +307,20 @@ class _ProductCardState extends State<ProductCard> {
                     child: Text(
                       widget.name,
                       style: TextStyle(
-                        color: _isHovered ? Colors.cyan[100] : Colors.white,
+                        color: Colors.white,
                         fontSize: fontSize,
                         fontWeight: FontWeight.bold,
-                        shadows:
-                            _isHovered
-                                ? [
-                                  Shadow(
-                                    color: Colors.cyan[300]!.withOpacity(0.5),
-                                    blurRadius: 10,
-                                  ),
-                                ]
-                                : null,
                       ),
                     ),
                   ),
                   Icon(
                     Icons.arrow_forward_ios,
-                    color:
-                        _isHovered
-                            ? Colors.cyan[300]
-                            : Colors.white.withOpacity(0.7),
+                    color: Colors.white.withOpacity(_isHovered ? 1.0 : 0.7),
                     size: widget.isMobile ? 16.0 : 24.0,
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
