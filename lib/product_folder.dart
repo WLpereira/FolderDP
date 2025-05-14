@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 
 class ProductFolder extends StatefulWidget {
   const ProductFolder({super.key});
@@ -150,78 +151,116 @@ class _ProductFolderState extends State<ProductFolder>
                 Center(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      return GestureDetector(
-                        onVerticalDragStart: (details) {
-                          _dragStartX = details.globalPosition.dy;
-                          _carouselController.stop();
+                      return Listener(
+                        onPointerSignal: (pointerSignal) {
+                          if (pointerSignal is PointerScrollEvent) {
+                            if (pointerSignal.scrollDelta.dy > 0) {
+                              // Scroll para baixo: próximo card
+                              setState(() {
+                                _currentOffset -= 1.0;
+                                final maxOffset =
+                                    -(MediaQuery.of(context).size.height *
+                                        (products.length - 1));
+                                if (_currentOffset < maxOffset)
+                                  _currentOffset = maxOffset;
+                              });
+                            } else if (pointerSignal.scrollDelta.dy < 0) {
+                              // Scroll para cima: card anterior
+                              setState(() {
+                                _currentOffset += 1.0;
+                                if (_currentOffset > 0) _currentOffset = 0;
+                              });
+                            }
+                          }
                         },
-                        onVerticalDragUpdate: (details) {
-                          final delta = details.globalPosition.dy - _dragStartX;
-                          _moveCarousel(delta / constraints.maxHeight);
-                          _dragStartX = details.globalPosition.dy;
-                        },
-                        onVerticalDragEnd: (details) {
-                          _carouselController.repeat();
-                        },
-                        onTapDown: (_) {
-                          _carouselController.stop();
-                        },
-                        onTapUp: (_) {
-                          _carouselController.repeat();
-                        },
-                        onTapCancel: () {
-                          _carouselController.repeat();
-                        },
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            height: constraints.maxHeight * products.length,
-                            child: AnimatedBuilder(
-                              animation:
-                                  _isAutoPlaying
-                                      ? _carouselAnimation
-                                      : _carouselController,
-                              builder: (context, child) {
-                                return Transform.translate(
-                                  offset: Offset(
-                                    0,
+                        child: GestureDetector(
+                          onVerticalDragStart: (details) {
+                            _dragStartX = details.globalPosition.dy;
+                            _carouselController.stop();
+                          },
+                          onVerticalDragEnd: (details) {
+                            final dragDistance = details.primaryVelocity ?? 0;
+                            // Se arrastou para cima (drag negativo), vai para o próximo card
+                            if (dragDistance < -50) {
+                              setState(() {
+                                _currentOffset -= 1.0;
+                                final maxOffset =
+                                    -(MediaQuery.of(context).size.height *
+                                        (products.length - 1));
+                                if (_currentOffset < maxOffset)
+                                  _currentOffset = maxOffset;
+                              });
+                            }
+                            // Se arrastou para baixo (drag positivo), vai para o card anterior
+                            else if (dragDistance > 50) {
+                              setState(() {
+                                _currentOffset += 1.0;
+                                if (_currentOffset > 0) _currentOffset = 0;
+                              });
+                            }
+                            _carouselController.repeat();
+                          },
+                          onTapDown: (_) {
+                            _carouselController.stop();
+                          },
+                          onTapUp: (_) {
+                            _carouselController.repeat();
+                          },
+                          onTapCancel: () {
+                            _carouselController.repeat();
+                          },
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: constraints.maxHeight * products.length,
+                              child: AnimatedBuilder(
+                                animation:
                                     _isAutoPlaying
-                                        ? _carouselAnimation.value *
-                                            constraints.maxHeight
-                                        : _currentOffset *
-                                            constraints.maxHeight,
-                                  ),
-                                  child: Column(
-                                    children:
-                                        products
-                                            .map(
-                                              (product) => SizedBox(
-                                                height:
-                                                    constraints.maxHeight * 0.3,
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        vertical: 8.0,
-                                                        horizontal: 16.0,
+                                        ? _carouselAnimation
+                                        : _carouselController,
+                                builder: (context, child) {
+                                  return Transform.translate(
+                                    offset: Offset(
+                                      0,
+                                      _isAutoPlaying
+                                          ? _carouselAnimation.value *
+                                              constraints.maxHeight
+                                          : _currentOffset *
+                                              constraints.maxHeight,
+                                    ),
+                                    child: Column(
+                                      children:
+                                          products
+                                              .map(
+                                                (product) => SizedBox(
+                                                  height:
+                                                      constraints.maxHeight *
+                                                      0.3,
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 8.0,
+                                                          horizontal: 16.0,
+                                                        ),
+                                                    child: ProductCard(
+                                                      name: product['name']!,
+                                                      url: product['url']!,
+                                                      image: product['image']!,
+                                                      index: products.indexOf(
+                                                        product,
                                                       ),
-                                                  child: ProductCard(
-                                                    name: product['name']!,
-                                                    url: product['url']!,
-                                                    image: product['image']!,
-                                                    index: products.indexOf(
-                                                      product,
+                                                      isMobile: true,
+                                                      isTablet: false,
                                                     ),
-                                                    isMobile: true,
-                                                    isTablet: false,
                                                   ),
                                                 ),
-                                              ),
-                                            )
-                                            .toList(),
-                                  ),
-                                );
-                              },
+                                              )
+                                              .toList(),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ),
