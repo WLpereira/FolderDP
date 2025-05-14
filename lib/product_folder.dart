@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/gestures.dart';
 
 class ProductFolder extends StatefulWidget {
   const ProductFolder({super.key});
@@ -11,51 +10,57 @@ class ProductFolder extends StatefulWidget {
 
 class _ProductFolderState extends State<ProductFolder>
     with SingleTickerProviderStateMixin {
-  late AnimationController _carouselController;
-  late Animation<double> _carouselAnimation;
+  late PageController _pageController;
+  late AnimationController _animationController;
   bool _isAutoPlaying = true;
-  double _currentOffset = 0;
-  double _dragDelta = 0;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _carouselController = AnimationController(
-      duration: const Duration(seconds: 30),
+    _pageController = PageController(viewportFraction: 0.85);
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 5),
       vsync: this,
     );
 
-    _carouselAnimation = Tween<double>(begin: 0.0, end: -1.0).animate(
-      CurvedAnimation(parent: _carouselController, curve: Curves.linear),
-    );
+    // Autoplay
+    if (_isAutoPlaying) {
+      _startAutoPlay();
+    }
+  }
 
-    _carouselController.repeat();
+  void _startAutoPlay() {
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_isAutoPlaying && mounted) {
+        if (_currentPage < products.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+        _startAutoPlay();
+      }
+    });
   }
 
   void _toggleAutoPlay() {
     setState(() {
       _isAutoPlaying = !_isAutoPlaying;
       if (_isAutoPlaying) {
-        _carouselController.repeat();
-      } else {
-        _carouselController.stop();
+        _startAutoPlay();
       }
-    });
-  }
-
-  void _updateOffset(double delta) {
-    setState(() {
-      _currentOffset += delta;
-      if (_currentOffset > 0) _currentOffset = 0;
-      final maxOffset =
-          -(MediaQuery.of(context).size.height * (products.length - 1) / 2);
-      if (_currentOffset < maxOffset) _currentOffset = maxOffset;
     });
   }
 
   @override
   void dispose() {
-    _carouselController.dispose();
+    _pageController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -106,13 +111,14 @@ class _ProductFolderState extends State<ProductFolder>
             end: Alignment.bottomCenter,
             colors: [
               Colors.blue[900]!.withOpacity(0.9),
-              const Color.fromARGB(255, 61, 172, 251)!.withOpacity(0.7),
-              const Color.fromARGB(255, 10, 1, 53).withOpacity(0.8),
+              Colors.cyan[800]!.withOpacity(0.7),
+              Colors.black.withOpacity(0.8),
             ],
           ),
         ),
         child: Stack(
           children: [
+            // Efeito de partículas futuristas
             Positioned.fill(
               child: AnimatedContainer(
                 duration: const Duration(seconds: 10),
@@ -129,87 +135,54 @@ class _ProductFolderState extends State<ProductFolder>
               ),
             ),
             Center(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Listener(
-                    onPointerSignal: (pointerSignal) {
-                      if (pointerSignal is PointerScrollEvent) {
-                        _updateOffset(
-                          pointerSignal.scrollDelta.dy / constraints.maxHeight,
-                        );
-                      }
-                    },
-                    child: GestureDetector(
-                      onPanStart: (details) {
-                        _carouselController.stop();
-                        _dragDelta = 0;
-                      },
-                      onPanUpdate: (details) {
-                        setState(() {
-                          _dragDelta = details.delta.dy / constraints.maxHeight;
-                          _updateOffset(_dragDelta);
-                        });
-                      },
-                      onPanEnd: (details) {
-                        if (_isAutoPlaying) {
-                          _carouselController.repeat();
-                        }
-                      },
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        physics: const NeverScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: constraints.maxHeight * products.length / 2,
-                          child: AnimatedBuilder(
-                            animation:
-                                _isAutoPlaying
-                                    ? _carouselAnimation
-                                    : _carouselController,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(
-                                  0,
-                                  _isAutoPlaying
-                                      ? _carouselAnimation.value *
-                                          constraints.maxHeight
-                                      : _currentOffset * constraints.maxHeight,
-                                ),
-                                child: Column(
-                                  children:
-                                      products
-                                          .asMap()
-                                          .entries
-                                          .map(
-                                            (entry) => SizedBox(
-                                              height:
-                                                  constraints.maxHeight * 0.4,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 12.0,
-                                                      horizontal: 16.0,
-                                                    ),
-                                                child: ProductCard(
-                                                  name: entry.value['name']!,
-                                                  url: entry.value['url']!,
-                                                  image: entry.value['image']!,
-                                                  index: entry.key,
-                                                  isMobile: isMobile,
-                                                  isTablet: !isMobile,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                          .toList(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: products.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 20.0,
+                    ),
+                    child: ProductCard(
+                      name: products[index]['name']!,
+                      url: products[index]['url']!,
+                      image: products[index]['image']!,
+                      index: index,
+                      isMobile: isMobile,
+                      isTablet: !isMobile,
                     ),
                   );
                 },
+              ),
+            ),
+            // Indicador de página
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  products.length,
+                  (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    width: _currentPage == index ? 12.0 : 8.0,
+                    height: _currentPage == index ? 12.0 : 8.0,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          _currentPage == index
+                              ? Colors.cyan[300]
+                              : Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -293,11 +266,12 @@ class _ProductCardState extends State<ProductCard>
         ),
         padding: EdgeInsets.all(widget.isMobile ? 14.0 : 22.0),
         decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
           gradient: LinearGradient(
             colors:
                 _isHovered
                     ? [
-                      const Color.fromARGB(255, 10, 165, 254)!.withOpacity(0.9),
+                      Colors.cyan[600]!.withOpacity(0.9),
                       Colors.blue[900]!.withOpacity(0.9),
                     ]
                     : [
@@ -318,6 +292,12 @@ class _ProductCardState extends State<ProductCard>
               blurRadius: 15,
               spreadRadius: _isHovered ? 3 : 1,
             ),
+            // Sombra para efeito de página
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              offset: const Offset(5, 5),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: InkWell(
@@ -336,7 +316,7 @@ class _ProductCardState extends State<ProductCard>
                     return Container(
                       width: imageSize,
                       height: imageSize,
-                      color: const Color.fromARGB(255, 0, 9, 88),
+                      color: Colors.grey[800],
                       child: const Icon(
                         Icons.error_outline,
                         color: Colors.red,
