@@ -1,0 +1,54 @@
+name: folder_dp
+description: "FolderDP - Gerenciador de Pastas"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/Logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/Logo.png"
+  web:
+    generate: true
+    image_path: "assets/images/Logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#000000"
+  windows:
+    generate: true
+    image_path: "assets/images/Logo.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/images/Logo.png"
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/images/Logo.png
+    - assets/images/dataplace_erp.png
+    - assets/images/dataplace_sfa.png
+    - assets/images/dataplace_delivery_control.png
+    - assets/images/dataplace_rh.png
+    - assets/images/dataplace_bi.png
+    - assets/images/dataplace_b2b.png
