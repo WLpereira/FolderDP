@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math' as math;
 
 class ProductFolder extends StatefulWidget {
   const ProductFolder({super.key});
@@ -14,6 +15,7 @@ class _ProductFolderState extends State<ProductFolder>
   late AnimationController _animationController;
   bool _isAutoPlaying = true;
   int _currentPage = 0;
+  double _currentPageValue = 0.0;
 
   @override
   void initState() {
@@ -24,7 +26,12 @@ class _ProductFolderState extends State<ProductFolder>
       vsync: this,
     );
 
-    // Autoplay
+    _pageController.addListener(() {
+      setState(() {
+        _currentPageValue = _pageController.page ?? 0;
+      });
+    });
+
     if (_isAutoPlaying) {
       _startAutoPlay();
     }
@@ -43,15 +50,6 @@ class _ProductFolderState extends State<ProductFolder>
           duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
         );
-        _startAutoPlay();
-      }
-    });
-  }
-
-  void _toggleAutoPlay() {
-    setState(() {
-      _isAutoPlaying = !_isAutoPlaying;
-      if (_isAutoPlaying) {
         _startAutoPlay();
       }
     });
@@ -103,156 +101,119 @@ class _ProductFolderState extends State<ProductFolder>
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 600;
 
+    // Paleta de cores Dataplace
+    const azulPetroleo = Color(0xFF0097b2);
+    const azulEscuro = Color(0xFF005e6e);
+    const cianoClaro = Color(0xFF00c6e0);
+    const branco = Color(0xFFFFFFFF);
+    const laranja = Color(0xFFFF9800);
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue[900]!.withOpacity(0.9),
-              Colors.cyan[800]!.withOpacity(0.7),
-              Colors.black.withOpacity(0.8),
-            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [azulPetroleo, azulEscuro, cianoClaro.withOpacity(0.7)],
           ),
         ),
         child: Stack(
           children: [
-            // Efeito de partículas futuristas
-            Positioned.fill(
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 10),
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.cyan[400]!.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                    radius: 0.7,
-                    center: const Alignment(-0.4, -0.4),
-                  ),
-                ),
-              ),
-            ),
             Center(
-              child: Stack(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: products.length,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0,
-                          vertical: 20.0,
-                        ),
-                        child: ProductCard(
-                          name: products[index]['name']!,
-                          url: products[index]['url']!,
-                          image: products[index]['image']!,
-                          index: index,
-                          isMobile: isMobile,
-                          isTablet: !isMobile,
-                        ),
-                      );
-                    },
-                  ),
-                  if (!isMobile)
-                    Positioned(
-                      bottom: 30,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (_currentPage > 0) {
-                                _pageController.previousPage(
-                                  duration: const Duration(milliseconds: 500),
-                                  curve: Curves.easeInOut,
-                                );
-                              }
-                            },
-                            child: Container(
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: products.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        final pageValue = index - _currentPageValue;
+                        final rotation = pageValue * math.pi;
+                        final scale =
+                            1.0 - (pageValue.abs() * 0.1).clamp(0.0, 0.5);
+                        final opacity = (1.0 - pageValue.abs()).clamp(0.0, 1.0);
+
+                        return Transform(
+                          transform:
+                              Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(rotation)
+                                ..scale(scale),
+                          alignment: Alignment.center,
+                          child: Opacity(
+                            opacity: opacity,
+                            child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 22,
+                                horizontal: 10.0,
+                                vertical: 20.0,
                               ),
-                              margin: const EdgeInsets.symmetric(horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Text(
-                                'Anterior',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
+                              child: ProductCard(
+                                name: products[index]['name']!,
+                                url: products[index]['url']!,
+                                image: products[index]['image']!,
+                                index: index,
+                                isMobile: isMobile,
+                                isTablet: !isMobile,
+                                azulPetroleo: azulPetroleo,
+                                azulEscuro: azulEscuro,
+                                cianoClaro: cianoClaro,
+                                branco: branco,
+                                laranja: laranja,
                               ),
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              if (_currentPage < products.length - 1) {
-                                _pageController.nextPage(
-                                  duration: const Duration(milliseconds: 500),
-                                  curve: Curves.easeInOut,
-                                );
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 22,
-                              ),
-                              margin: const EdgeInsets.symmetric(horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Text(
-                                'Próximo',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
+                  ),
+                  // Navegação inferior
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildNavigationButton(
+                          icon: Icons.arrow_back_ios,
+                          onTap: () {
+                            if (_currentPage > 0) {
+                              _pageController.previousPage(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          },
+                          color: laranja,
+                          iconColor: branco,
+                        ),
+                        const SizedBox(width: 20),
+                        _buildNavigationButton(
+                          icon: Icons.arrow_forward_ios,
+                          onTap: () {
+                            if (_currentPage < products.length - 1) {
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          },
+                          color: laranja,
+                          iconColor: branco,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             // Indicador de página
             Positioned(
-              bottom: 20,
+              bottom: 80,
               left: 0,
               right: 0,
               child: Row(
@@ -267,8 +228,8 @@ class _ProductFolderState extends State<ProductFolder>
                       shape: BoxShape.circle,
                       color:
                           _currentPage == index
-                              ? Colors.cyan[300]
-                              : Colors.white.withOpacity(0.5),
+                              ? laranja
+                              : branco.withOpacity(0.5),
                     ),
                   ),
                 ),
@@ -276,6 +237,32 @@ class _ProductFolderState extends State<ProductFolder>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+    required Color iconColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: iconColor, size: 24),
       ),
     );
   }
@@ -288,6 +275,11 @@ class ProductCard extends StatefulWidget {
   final int index;
   final bool isMobile;
   final bool isTablet;
+  final Color azulPetroleo;
+  final Color azulEscuro;
+  final Color cianoClaro;
+  final Color branco;
+  final Color laranja;
 
   const ProductCard({
     super.key,
@@ -297,6 +289,11 @@ class ProductCard extends StatefulWidget {
     required this.index,
     required this.isMobile,
     required this.isTablet,
+    required this.azulPetroleo,
+    required this.azulEscuro,
+    required this.cianoClaro,
+    required this.branco,
+    required this.laranja,
   });
 
   @override
@@ -307,21 +304,20 @@ class _ProductCardState extends State<ProductCard>
     with SingleTickerProviderStateMixin {
   bool _isHovered = false;
   late AnimationController _controller;
-  late Animation<double> _glowAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
 
-    _glowAnimation = Tween<double>(begin: 0.2, end: 0.6).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
-    );
-
-    _controller.repeat(reverse: true);
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -345,100 +341,83 @@ class _ProductCardState extends State<ProductCard>
     final fontSize = widget.isMobile ? 20.0 : (widget.isTablet ? 22.0 : 26.0);
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: EdgeInsets.symmetric(
-          vertical: widget.isMobile ? 10.0 : 14.0,
-          horizontal: widget.isMobile ? 6.0 : 10.0,
-        ),
-        padding: EdgeInsets.all(widget.isMobile ? 14.0 : 22.0),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          gradient: LinearGradient(
-            colors:
-                _isHovered
-                    ? [
-                      Colors.cyan[600]!.withOpacity(0.9),
-                      Colors.blue[900]!.withOpacity(0.9),
-                    ]
-                    : [
-                      Colors.blue[800]!.withOpacity(0.85),
-                      Colors.blue[900]!.withOpacity(0.85),
-                    ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      onEnter: (_) {
+        setState(() => _isHovered = true);
+        _controller.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovered = false);
+        _controller.reverse();
+      },
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: EdgeInsets.symmetric(
+            vertical: widget.isMobile ? 10.0 : 14.0,
+            horizontal: widget.isMobile ? 6.0 : 10.0,
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.cyan[300]!.withOpacity(_isHovered ? 0.8 : 0.3),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.cyan[400]!.withOpacity(_glowAnimation.value),
-              blurRadius: 15,
-              spreadRadius: _isHovered ? 3 : 1,
-            ),
-            // Sombra para efeito de página
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              offset: const Offset(5, 5),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: InkWell(
-          onTap: () => _launchURL(widget.url),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  widget.image,
-                  width: imageSize,
-                  height: imageSize,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    print('Erro ao carregar imagem ${widget.image}: $error');
-                    return Container(
-                      width: imageSize,
-                      height: imageSize,
-                      color: Colors.grey[800],
-                      child: const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 32,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(width: widget.isMobile ? 14.0 : 22.0),
-              Expanded(
-                child: Text(
-                  widget.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    shadows: [
-                      Shadow(
-                        color: Colors.cyan[200]!.withOpacity(0.5),
-                        blurRadius: 5,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.cyan[200]!.withOpacity(_isHovered ? 1.0 : 0.7),
-                size: widget.isMobile ? 18.0 : 26.0,
+          padding: EdgeInsets.all(widget.isMobile ? 14.0 : 22.0),
+          decoration: BoxDecoration(
+            color: widget.branco,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: widget.azulEscuro.withOpacity(_isHovered ? 0.18 : 0.10),
+                blurRadius: 15,
+                spreadRadius: _isHovered ? 2 : 1,
               ),
             ],
+            border: Border.all(
+              color: widget.azulPetroleo.withOpacity(_isHovered ? 0.7 : 0.3),
+              width: 2,
+            ),
+          ),
+          child: InkWell(
+            onTap: () => _launchURL(widget.url),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    widget.image,
+                    width: imageSize,
+                    height: imageSize,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      print('Erro ao carregar imagem ${widget.image}: $error');
+                      return Container(
+                        width: imageSize,
+                        height: imageSize,
+                        color: widget.cianoClaro.withOpacity(0.2),
+                        child: const Icon(
+                          Icons.error_outline,
+                          color: Colors.grey,
+                          size: 32,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: widget.isMobile ? 14.0 : 22.0),
+                Expanded(
+                  child: Text(
+                    widget.name,
+                    style: TextStyle(
+                      color: widget.azulEscuro,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: widget.azulPetroleo,
+                  size: widget.isMobile ? 18.0 : 24.0,
+                ),
+              ],
+            ),
           ),
         ),
       ),
