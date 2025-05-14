@@ -251,7 +251,7 @@ class _ProductCardState extends State<ProductCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 1),
       vsync: this,
     );
 
