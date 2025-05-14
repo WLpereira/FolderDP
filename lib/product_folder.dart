@@ -62,8 +62,8 @@ class ProductFolder extends StatelessWidget {
             Positioned.fill(
               child: AnimatedContainer(
                 duration: const Duration(
-                  seconds: 20,
-                ), // Aumentado para 20 segundos
+                  seconds: 60,
+                ), // Aumentado para 60 segundos
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
@@ -79,8 +79,8 @@ class ProductFolder extends StatelessWidget {
             Positioned.fill(
               child: AnimatedContainer(
                 duration: const Duration(
-                  seconds: 25,
-                ), // Aumentado para 25 segundos
+                  seconds: 75,
+                ), // Aumentado para 75 segundos
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
@@ -170,8 +170,8 @@ class _ProductCardState extends State<ProductCard>
     super.initState();
     _controller = AnimationController(
       duration: Duration(
-        milliseconds: 2000 + widget.index * 600,
-      ), // Aumentado para 2000ms
+        milliseconds: 5000 + widget.index * 1500,
+      ), // Aumentado para 5000ms
       vsync: this,
     );
 
@@ -230,7 +230,9 @@ class _ProductCardState extends State<ProductCard>
             _controller.repeat(reverse: true);
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 800), // Aumentado para 800ms
+            duration: const Duration(
+              milliseconds: 2000,
+            ), // Aumentado para 2000ms
             margin: EdgeInsets.symmetric(
               vertical: widget.isMobile ? 8.0 : 12.0,
               horizontal: widget.isMobile ? 4.0 : 8.0,
